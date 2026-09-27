@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
-import { ShowcaseBackground } from '../../ui/ShowcaseBackground'
+import { LazyShowcase } from '../../ui/LazyShowcase'
 import { GlassPanel, KeyCap, Logo } from '../../ui/GlassPanel'
 import { GameButton } from '../../ui/GameButton'
 import { sfx } from '../../game/ui/sound'
@@ -72,7 +72,7 @@ export function AuthPage() {
 
   return (
     <div className="relative isolate flex min-h-full items-center justify-center overflow-hidden p-6">
-      <ShowcaseBackground />
+      <LazyShowcase />
       <div className="grid w-full max-w-4xl items-center gap-10 md:grid-cols-[1.1fr_1fr]">
         <div className="hidden md:block animate-fade-up">
           <Logo />

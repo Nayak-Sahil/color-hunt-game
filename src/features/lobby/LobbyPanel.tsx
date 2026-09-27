@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { friendlyError, startGame } from '../../lib/api'
 import { activePlayers, useGameStore } from '../../game/state/gameStore'
 import { playerColor } from '../../game/state/types'
-import { ShowcaseBackground } from '../../ui/ShowcaseBackground'
+import { LazyShowcase } from '../../ui/LazyShowcase'
 import { GlassPanel, Logo } from '../../ui/GlassPanel'
 import { GameButton } from '../../ui/GameButton'
 import { sfx } from '../../game/ui/sound'
@@ -53,7 +53,7 @@ export function LobbyPanel({ userId, onLeave }: Props) {
 
   return (
     <div className="relative isolate flex min-h-full items-center justify-center overflow-hidden p-6">
-      <ShowcaseBackground />
+      <LazyShowcase />
       <div className="w-full max-w-2xl">
         <div className="mb-5 flex items-center justify-between animate-fade-up">
           <Logo size="sm" />

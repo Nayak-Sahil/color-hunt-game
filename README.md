@@ -27,6 +27,14 @@ npm run build       # production bundle
 npm run seed:map    # regenerate supabase/migrations/0004_seed_map_objects.sql from the map generator
 ```
 
+### Loading and performance
+- The 3D engine (three.js) is code-split into its own chunk. The login screen paints with the small app
+  bundle first; the neighborhood backdrop and the game load on demand and are prefetched from the home screen.
+- Menus render a live, slowly orbiting neighborhood. Open the app with `?lite` to use a static gradient
+  instead on weak machines (remembered for the tab).
+- Sound effects are synthesized in the browser (no audio files); a mute button sits next to Leave in game.
+  Vibration feedback is used where the device supports it.
+
 ## Supabase setup
 
 The migrations in `supabase/migrations/` have already been applied to the `color-hunt-game` project

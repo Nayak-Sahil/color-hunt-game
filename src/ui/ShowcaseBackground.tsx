@@ -8,20 +8,7 @@ import { PropsLayer } from '../game/scene/Props'
 import { ANNOUNCE_COLORS } from '../game/state/types'
 import { getMap } from '../game/map/generateMap'
 
-const LITE_KEY = 'colorhunt-lite'
 const SHOWCASE_FPS = 24
-
-/** `?lite` in the URL (remembered for the tab) replaces the 3D backdrop with a gradient for weak machines. */
-export function isLiteMode(): boolean {
-  try {
-    if (new URLSearchParams(window.location.search).has('lite')) {
-      sessionStorage.setItem(LITE_KEY, '1')
-    }
-    return sessionStorage.getItem(LITE_KEY) === '1'
-  } catch {
-    return false
-  }
-}
 
 /** Slowly circles the neighborhood at a low angle, like an attract mode. */
 function OrbitingCamera() {
@@ -53,13 +40,7 @@ const SHOWCASE_OBJECT = getMap().props.find((p) => p.kind === 'car')?.id ?? null
 const SHOWCASE_COLOR = ANNOUNCE_COLORS[0].hex
 
 /** Live 3D neighborhood behind the menus so every screen feels like the game. */
-export function ShowcaseBackground() {
-  if (isLiteMode()) {
-    return (
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_#1e3a5f,_#0b1120_65%)]" />
-    )
-  }
-
+export default function ShowcaseBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 -z-10">
       <Canvas

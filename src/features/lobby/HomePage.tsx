@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { createSession, friendlyError, joinSession } from '../../lib/api'
 import { displayNameOf } from '../auth/useAuth'
-import { ShowcaseBackground } from '../../ui/ShowcaseBackground'
+import { LazyShowcase, prefetchGame } from '../../ui/LazyShowcase'
 import { GlassPanel, KeyCap, Logo } from '../../ui/GlassPanel'
 import { GameButton } from '../../ui/GameButton'
 import { sfx } from '../../game/ui/sound'
@@ -25,6 +25,11 @@ export function HomePage({ session }: Props) {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState<'create' | 'join' | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Warm the 3D chunk while the player reads the home screen.
+  useEffect(() => {
+    prefetchGame()
+  }, [])
 
   const onCreate = async () => {
     setError(null)
@@ -59,7 +64,7 @@ export function HomePage({ session }: Props) {
 
   return (
     <div className="relative isolate flex min-h-full items-center justify-center overflow-hidden p-6">
-      <ShowcaseBackground />
+      <LazyShowcase />
       <div className="w-full max-w-4xl">
         <header className="mb-6 flex items-center justify-between animate-fade-up">
           <Logo />

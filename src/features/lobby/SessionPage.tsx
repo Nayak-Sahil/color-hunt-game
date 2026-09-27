@@ -1,15 +1,16 @@
-import { useCallback } from 'react'
+import { lazy, Suspense, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type { Session } from '@supabase/supabase-js'
 import { leaveSession } from '../../lib/api'
 import { useGameChannel } from '../../game/net/useGameChannel'
 import { findPlayer, useGameStore } from '../../game/state/gameStore'
-import { GameCanvas } from '../../game/scene/GameCanvas'
-import { HUD } from '../../game/ui/HUD'
 import { LobbyPanel } from './LobbyPanel'
-import { ShowcaseBackground } from '../../ui/ShowcaseBackground'
+import { LazyShowcase } from '../../ui/LazyShowcase'
 import { GlassPanel } from '../../ui/GlassPanel'
 import { GameButton } from '../../ui/GameButton'
+
+// The 3D engine only loads when a game actually starts (or is prefetched from the home screen).
+const GameView = lazy(() => import('../../game/GameView'))
 
 interface Props {
   session: Session
@@ -35,9 +36,7 @@ function SessionView({ sessionId, userId }: { sessionId: string; userId: string 
     }
   }, [navigate, sessionId])
 
-  const home = (
-    <GameButton onClick={() => navigate('/')}>⟵ Back home</GameButton>
-  )
+  const home = <GameButton onClick={() => navigate('/')}>⟵ Back home</GameButton>
 
   if (error !== null) {
     return (
@@ -72,10 +71,9 @@ function SessionView({ sessionId, userId }: { sessionId: string; userId: string 
   }
 
   return (
-    <div className="vignette relative h-full w-full overflow-hidden">
-      <GameCanvas userId={userId} />
-      <HUD userId={userId} onLeave={onLeave} />
-    </div>
+    <Suspense fallback={<CenteredMessage icon="🏘️" title="Loading the neighborhood…" detail="Warming up the 3D engine." plain />}>
+      <GameView userId={userId} onLeave={onLeave} />
+    </Suspense>
   )
 }
 
@@ -91,7 +89,7 @@ interface MessageProps {
 function CenteredMessage({ icon, title, detail, plain = false, children }: MessageProps) {
   return (
     <div className="relative isolate flex min-h-full items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_#1e293b,_#0b1120_60%)] p-6">
-      {!plain && <ShowcaseBackground />}
+      {!plain && <LazyShowcase />}
       <GlassPanel className="max-w-md p-8 text-center animate-pop">
         <div className="text-5xl animate-float">{icon}</div>
         <h1 className="mt-3 font-display text-2xl font-bold">{title}</h1>
