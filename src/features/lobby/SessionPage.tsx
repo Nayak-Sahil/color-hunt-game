@@ -7,6 +7,9 @@ import { findPlayer, useGameStore } from '../../game/state/gameStore'
 import { GameCanvas } from '../../game/scene/GameCanvas'
 import { HUD } from '../../game/ui/HUD'
 import { LobbyPanel } from './LobbyPanel'
+import { ShowcaseBackground } from '../../ui/ShowcaseBackground'
+import { GlassPanel } from '../../ui/GlassPanel'
+import { GameButton } from '../../ui/GameButton'
 
 interface Props {
   session: Session
@@ -32,26 +35,26 @@ function SessionView({ sessionId, userId }: { sessionId: string; userId: string 
     }
   }, [navigate, sessionId])
 
+  const home = (
+    <GameButton onClick={() => navigate('/')}>⟵ Back home</GameButton>
+  )
+
   if (error !== null) {
     return (
-      <CenteredMessage title="Cannot open this session" detail={error}>
-        <button type="button" onClick={() => navigate('/')} className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950">
-          Back home
-        </button>
+      <CenteredMessage icon="🚧" title="Cannot open this session" detail={error}>
+        {home}
       </CenteredMessage>
     )
   }
 
   if (game === null || me === null) {
-    return <CenteredMessage title="Joining session…" detail="Connecting to the neighborhood." />
+    return <CenteredMessage icon="🛰️" title="Joining session…" detail="Connecting to the neighborhood." plain />
   }
 
   if (me.status === 'left') {
     return (
-      <CenteredMessage title="You left this session" detail="Join again with the code if the game has not started yet.">
-        <button type="button" onClick={() => navigate('/')} className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950">
-          Back home
-        </button>
+      <CenteredMessage icon="🚪" title="You left this session" detail="Join again with the code if the game has not started yet.">
+        {home}
       </CenteredMessage>
     )
   }
@@ -62,30 +65,39 @@ function SessionView({ sessionId, userId }: { sessionId: string; userId: string 
 
   if (game.status === 'finished') {
     return (
-      <CenteredMessage title="Game over" detail="The session ended because fewer than two players remain.">
-        <button type="button" onClick={() => navigate('/')} className="rounded-lg bg-cyan-500 px-4 py-2 font-semibold text-slate-950">
-          Back home
-        </button>
+      <CenteredMessage icon="🏁" title="Game over" detail="The session ended because fewer than two players remain.">
+        {home}
       </CenteredMessage>
     )
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="vignette relative h-full w-full overflow-hidden">
       <GameCanvas userId={userId} />
       <HUD userId={userId} onLeave={onLeave} />
     </div>
   )
 }
 
-function CenteredMessage({ title, detail, children }: { title: string; detail: string; children?: React.ReactNode }) {
+interface MessageProps {
+  icon: string
+  title: string
+  detail: string
+  /** Skip the 3D backdrop for short transitional screens. */
+  plain?: boolean
+  children?: React.ReactNode
+}
+
+function CenteredMessage({ icon, title, detail, plain = false, children }: MessageProps) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-[radial-gradient(ellipse_at_top,_#1e293b,_#0f172a_60%)] p-6">
-      <div className="max-w-md rounded-2xl border border-white/10 bg-slate-900/80 p-8 text-center shadow-2xl">
-        <h1 className="text-xl font-bold">{title}</h1>
-        <p className="mt-2 text-sm text-slate-400">{detail}</p>
+    <div className="relative isolate flex min-h-full items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_#1e293b,_#0b1120_60%)] p-6">
+      {!plain && <ShowcaseBackground />}
+      <GlassPanel className="max-w-md p-8 text-center animate-pop">
+        <div className="text-5xl animate-float">{icon}</div>
+        <h1 className="mt-3 font-display text-2xl font-bold">{title}</h1>
+        <p className="mt-2 text-sm text-slate-300">{detail}</p>
         {children && <div className="mt-5">{children}</div>}
-      </div>
+      </GlassPanel>
     </div>
   )
 }

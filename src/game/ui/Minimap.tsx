@@ -83,11 +83,14 @@ export function MapCanvas({ userId, full = false, size, onClick }: Props) {
 export function Minimap({ userId }: { userId: string }) {
   const setFullMapOpen = useGameStore((s) => s.setFullMapOpen)
   return (
-    <div className="pointer-events-auto absolute bottom-4 left-4 overflow-hidden rounded-xl border border-white/15 bg-slate-900/70 shadow-lg backdrop-blur">
-      <MapCanvas userId={userId} size={176} onClick={() => setFullMapOpen(true)} />
+    <div className="pointer-events-auto absolute bottom-4 left-4 overflow-hidden rounded-2xl border border-white/15 bg-slate-950/70 shadow-[0_10px_30px_rgba(2,6,23,0.6)] backdrop-blur-xl transition hover:border-cyan-300/50 animate-fade-up">
+      <div className="relative">
+        <MapCanvas userId={userId} size={176} onClick={() => setFullMapOpen(true)} />
+        <span className="pointer-events-none absolute top-1.5 left-2 rounded bg-slate-950/70 px-1.5 font-display text-[10px] font-bold text-slate-200">N ↑</span>
+      </div>
       <div className="flex items-center justify-between px-2 py-1 text-[10px] text-slate-300">
-        <span>N ↑</span>
-        <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-full bg-rose-500" /> Hunter · M full map</span>
+        <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 rounded-full bg-rose-500" /> Hunter</span>
+        <span className="font-semibold">Click or M for full map</span>
       </div>
     </div>
   )

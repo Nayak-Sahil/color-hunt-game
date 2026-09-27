@@ -5,7 +5,7 @@ import { getMap } from '../map/generateMap'
 
 /** Neutral base colors per kind and variant. Only the hidden object gets the vivid announced color. */
 const BASE_COLORS: Record<PropKind, string[]> = {
-  car: ['#9aa3ad', '#d9dde2', '#3b4046', '#b9b2a4', '#6f7a86'],
+  car: ['#c9ccd1', '#f2f2f0', '#2b2f36', '#d8cfbf', '#5f6770'],
   bench: ['#8d6e4f', '#6f5a45'],
   mailbox: ['#4c525a', '#6b6f75'],
   hydrant: ['#8b8f94'],
@@ -36,20 +36,72 @@ export function PropMesh({ spec, color, highlighted }: PropMeshProps) {
   if (spec.kind === 'car') {
     return (
       <group>
-        <mesh position={[0, 0.5, 0]} castShadow receiveShadow>
-          <boxGeometry args={[2.0, 0.7, 4.4]} />
+        {/* Lower body */}
+        <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
+          <boxGeometry args={[2.0, 0.55, 4.4]} />
           {main}
         </mesh>
-        <mesh position={[0, 1.08, -0.2]} castShadow>
-          <boxGeometry args={[1.7, 0.55, 2.1]} />
-          <meshStandardMaterial color={GLASS} />
+        {/* Hood and trunk shoulders */}
+        <mesh position={[0, 0.88, 1.35]} castShadow>
+          <boxGeometry args={[1.9, 0.14, 1.5]} />
+          {main}
         </mesh>
-        {[-0.85, 0.85].map((x) =>
+        <mesh position={[0, 0.88, -1.5]} castShadow>
+          <boxGeometry args={[1.9, 0.14, 1.2]} />
+          {main}
+        </mesh>
+        {/* Cabin */}
+        <mesh position={[0, 1.12, -0.15]} castShadow>
+          <boxGeometry args={[1.75, 0.5, 2.2]} />
+          {main}
+        </mesh>
+        {/* Windows */}
+        <mesh position={[0, 1.14, 0.97]}>
+          <boxGeometry args={[1.6, 0.4, 0.06]} />
+          <meshStandardMaterial color={GLASS} metalness={0.5} roughness={0.15} />
+        </mesh>
+        <mesh position={[0, 1.14, -1.27]}>
+          <boxGeometry args={[1.6, 0.4, 0.06]} />
+          <meshStandardMaterial color={GLASS} metalness={0.5} roughness={0.15} />
+        </mesh>
+        {[-0.9, 0.9].map((x) => (
+          <mesh key={x} position={[x, 1.14, -0.15]}>
+            <boxGeometry args={[0.06, 0.36, 1.9]} />
+            <meshStandardMaterial color={GLASS} metalness={0.5} roughness={0.15} />
+          </mesh>
+        ))}
+        {/* Lights and bumpers */}
+        {[-0.65, 0.65].map((x) => (
+          <mesh key={`h${x}`} position={[x, 0.62, 2.21]}>
+            <boxGeometry args={[0.36, 0.18, 0.05]} />
+            <meshStandardMaterial color="#fff6c8" emissive="#ffe9a3" emissiveIntensity={0.5} />
+          </mesh>
+        ))}
+        {[-0.65, 0.65].map((x) => (
+          <mesh key={`t${x}`} position={[x, 0.62, -2.21]}>
+            <boxGeometry args={[0.36, 0.14, 0.05]} />
+            <meshStandardMaterial color="#b3261e" emissive="#7f1d1d" emissiveIntensity={0.4} />
+          </mesh>
+        ))}
+        {[2.22, -2.22].map((z) => (
+          <mesh key={z} position={[0, 0.36, z]}>
+            <boxGeometry args={[2.05, 0.2, 0.12]} />
+            <meshStandardMaterial color={DARK} />
+          </mesh>
+        ))}
+        {/* Wheels with hubcaps */}
+        {[-0.92, 0.92].map((x) =>
           [-1.4, 1.4].map((z) => (
-            <mesh key={`${x}-${z}`} position={[x, 0.32, z]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.32, 0.32, 0.3, 12]} />
-              <meshStandardMaterial color={DARK} />
-            </mesh>
+            <group key={`${x}-${z}`} position={[x, 0.34, z]} rotation={[0, 0, Math.PI / 2]}>
+              <mesh castShadow>
+                <cylinderGeometry args={[0.34, 0.34, 0.28, 14]} />
+                <meshStandardMaterial color={DARK} roughness={0.9} />
+              </mesh>
+              <mesh position={[0, x > 0 ? 0.15 : -0.15, 0]}>
+                <cylinderGeometry args={[0.17, 0.17, 0.02, 10]} />
+                <meshStandardMaterial color="#c7cbd1" metalness={0.7} roughness={0.3} />
+              </mesh>
+            </group>
           )),
         )}
       </group>

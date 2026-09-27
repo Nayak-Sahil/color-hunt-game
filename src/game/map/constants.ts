@@ -28,6 +28,8 @@ export const HUNTER_DETECT_RANGE = 32
 export const MIN_OBJECT_DISTANCE = 18
 
 export const ROUND_DURATION_SECONDS = 180
+/** Start countdown shown to everyone after the color is announced. */
+export const COUNTDOWN_SECONDS = 3
 /** Seconds before the end at which the timer starts warning players. */
 export const WARNING_SECONDS = 30
 /** Seconds before the end at which everyone is shown the object's shape. */

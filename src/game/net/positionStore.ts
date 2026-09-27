@@ -11,6 +11,7 @@ export interface PositionSnapshot {
   /** Local receive time in milliseconds. */
   t: number
   moving: boolean
+  sprinting: boolean
 }
 
 export interface RemoteState {
@@ -26,19 +27,20 @@ export interface RemoteState {
 const remotes = new Map<string, RemoteState>()
 const online = new Set<string>()
 
-export const localPosition: PositionSnapshot = { x: 0, z: 0, y: 0, rot: 0, t: 0, moving: false }
+export const localPosition: PositionSnapshot = { x: 0, z: 0, y: 0, rot: 0, t: 0, moving: false, sprinting: false }
 
 // Dev only: lets automated browser tests read the local position.
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   ;(window as unknown as { __colorHuntPosition?: PositionSnapshot }).__colorHuntPosition = localPosition
 }
 
-export function setLocalPosition(x: number, z: number, y: number, rot: number, moving: boolean): void {
+export function setLocalPosition(x: number, z: number, y: number, rot: number, moving: boolean, sprinting: boolean): void {
   localPosition.x = x
   localPosition.z = z
   localPosition.y = y
   localPosition.rot = rot
   localPosition.moving = moving
+  localPosition.sprinting = sprinting
   localPosition.t = performance.now()
 }
 

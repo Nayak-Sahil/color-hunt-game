@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { DirectionalLight, Vector3 } from 'three'
+import { DirectionalLight, PerspectiveCamera, Vector3 } from 'three'
 import { localPosition } from '../net/positionStore'
 
 const CAMERA_OFFSET = new Vector3(0, 27, 17)
 const LOOK_AHEAD = new Vector3(0, 0.5, -2)
+const FOV_NORMAL = 42
+const FOV_SPRINT = 49
 
 /** Top-down, slightly angled camera that follows the local player with north up. */
 export function FollowCamera() {
@@ -25,6 +27,16 @@ export function FollowCamera() {
       camera.position.lerp(desired.current, k)
     }
     camera.lookAt(target.current)
+
+    // A wider field of view sells the speed while sprinting.
+    if (camera instanceof PerspectiveCamera) {
+      const wanted = localPosition.sprinting && localPosition.moving ? FOV_SPRINT : FOV_NORMAL
+      const next = camera.fov + (wanted - camera.fov) * Math.min(1, dt * 5)
+      if (Math.abs(next - camera.fov) > 0.01) {
+        camera.fov = next
+        camera.updateProjectionMatrix()
+      }
+    }
   })
 
   return null
@@ -55,7 +67,7 @@ export function FollowLight() {
   return (
     <directionalLight
       ref={light}
-      intensity={1.7}
+      intensity={2.1}
       color="#fff4e0"
       castShadow
       shadow-mapSize={[2048, 2048]}

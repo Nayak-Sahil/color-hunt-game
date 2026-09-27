@@ -12,6 +12,7 @@ interface PositionPayload {
   y: number
   rot: number
   moving: boolean
+  sprinting?: boolean
 }
 
 const POSITION_INTERVAL_MS = 66
@@ -23,13 +24,21 @@ let activeUserId: string | null = null
 let lastPositionSentAt = 0
 
 /** Broadcasts the local position to the session channel, throttled to about 15 Hz. */
-export function sendPosition(x: number, z: number, y: number, rot: number, moving: boolean, force = false): void {
+export function sendPosition(
+  x: number,
+  z: number,
+  y: number,
+  rot: number,
+  moving: boolean,
+  sprinting: boolean,
+  force = false,
+): void {
   if (activeChannel === null) return
   if (activeUserId === null) return
   const now = performance.now()
   if (!force && now - lastPositionSentAt < POSITION_INTERVAL_MS) return
   lastPositionSentAt = now
-  const payload: PositionPayload = { id: activeUserId, x, z, y, rot, moving }
+  const payload: PositionPayload = { id: activeUserId, x, z, y, rot, moving, sprinting }
   void activeChannel.send({ type: 'broadcast', event: 'pos', payload })
 }
 
@@ -85,7 +94,14 @@ export function useGameChannel(sessionId: string, userId: string): { error: stri
         .on('broadcast', { event: 'pos' }, ({ payload }) => {
           const p = payload as PositionPayload
           if (p.id === userId) return
-          receiveRemotePosition(p.id, { x: p.x, z: p.z, y: p.y ?? 0, rot: p.rot, moving: p.moving })
+          receiveRemotePosition(p.id, {
+            x: p.x,
+            z: p.z,
+            y: p.y ?? 0,
+            rot: p.rot,
+            moving: p.moving,
+            sprinting: p.sprinting === true,
+          })
         })
         .on('broadcast', { event: 'INSERT' }, scheduleRefetch)
         .on('broadcast', { event: 'UPDATE' }, scheduleRefetch)

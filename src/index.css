@@ -1,7 +1,59 @@
 @import "tailwindcss";
 
+@theme {
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-sans: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --animate-orbit: orbit 8s linear infinite;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-pop: pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  --animate-shake: shake 0.4s ease-in-out both;
+  --animate-fade-up: fade-up 0.4s ease-out both;
+  --animate-countdown: countdown 0.9s ease-out both;
+  --animate-ring: ring 1.2s ease-out infinite;
+  --animate-shine: shine 2.4s linear infinite;
+  --animate-dots: dots 1.2s steps(4, end) infinite;
+
+  @keyframes orbit {
+    from { transform: rotate(0deg) translateX(20px) rotate(0deg); }
+    to { transform: rotate(360deg) translateX(20px) rotate(-360deg); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes pop {
+    from { transform: scale(0.6); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  @keyframes fade-up {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes countdown {
+    0% { transform: scale(2.2); opacity: 0; }
+    20% { transform: scale(1); opacity: 1; }
+    80% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0; }
+  }
+  @keyframes ring {
+    0% { transform: scale(0.8); opacity: 0.9; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+  @keyframes shine {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+  @keyframes dots {
+    to { width: 1.5em; }
+  }
+}
+
 :root {
-  font-family: "Segoe UI", system-ui, Avenir, Helvetica, Arial, sans-serif;
   color-scheme: dark;
 }
 
@@ -9,11 +61,55 @@ html, body, #root {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0f172a;
+  background: #0b1120;
   color: #f1f5f9;
+  font-family: var(--font-sans);
 }
 
 canvas {
   display: block;
   outline: none;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Subtle darkening at the screen edges so the HUD stays readable over the world. */
+.vignette::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(2, 6, 23, 0.45) 100%);
+}
+
+.animated-dots::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: var(--animate-dots);
+}
+.animated-dots::after { content: "…"; }
+
+.orb {
+  position: relative;
+  border-radius: 9999px;
+  box-shadow:
+    inset -6px -8px 14px rgba(0, 0, 0, 0.35),
+    inset 6px 6px 12px rgba(255, 255, 255, 0.45),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+}
+.orb::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  top: 14%;
+  width: 28%;
+  height: 20%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.6);
+  filter: blur(1px);
 }

@@ -1,4 +1,27 @@
-import type { PlayerRow } from './types'
+import { COUNTDOWN_SECONDS } from '../map/constants'
+import type { PlayerRow, RoundRow, SessionRow } from './types'
+
+/** Seconds of the start countdown still left for a round, 0 once the hunt is on. */
+export function countdownRemaining(round: RoundRow | null, serverOffsetMs: number, now = Date.now()): number {
+  if (round === null) return 0
+  const startedAt = new Date(round.started_at).getTime()
+  const serverNow = now + serverOffsetMs
+  const remaining = COUNTDOWN_SECONDS - (serverNow - startedAt) / 1000
+  return remaining > 0 ? remaining : 0
+}
+
+/**
+ * Nobody moves while the Hunter picks a color, during the start countdown,
+ * or once the round is over.
+ */
+export function isMovementFrozen(session: SessionRow | null, round: RoundRow | null, serverOffsetMs: number, now = Date.now()): boolean {
+  if (session === null) return true
+  if (session.status === 'choosing_color') return true
+  if (session.status === 'round_over') return true
+  if (session.status === 'finished') return true
+  if (session.status === 'hunting' && countdownRemaining(round, serverOffsetMs, now) > 0) return true
+  return false
+}
 
 export type Compass = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW'
 

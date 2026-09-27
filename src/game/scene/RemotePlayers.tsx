@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { Group } from 'three'
 import { Character, type MotionState } from './Character'
+import { emitDust } from './DustSystem'
 import { getRemote } from '../net/positionStore'
 import { useGameStore } from '../state/gameStore'
 import { normalizeAngle } from '../physics/tank'
@@ -13,8 +14,10 @@ interface Props {
 
 function RemotePlayer({ player }: { player: PlayerRow }) {
   const group = useRef<Group>(null)
-  const motion = useRef<MotionState>({ moving: false })
+  const motion = useRef<MotionState>({ moving: false, sprinting: false, airborne: false })
   const initialized = useRef(false)
+  const dustTimer = useRef(0)
+  const wasAirborne = useRef(false)
 
   useFrame((_, dt) => {
     const remote = getRemote(player.user_id)
@@ -44,7 +47,20 @@ function RemotePlayer({ player }: { player: PlayerRow }) {
 
     // Consider a remote player moving if the network says so or they are still catching up.
     const catchingUp = Math.hypot(remote.target.x - remote.x, remote.target.z - remote.z) > 0.08
+    const airborne = remote.target.y > 0.05 || remote.y > 0.08
     motion.current.moving = remote.target.moving || catchingUp
+    motion.current.sprinting = remote.target.sprinting
+    motion.current.airborne = airborne
+
+    if (motion.current.sprinting && motion.current.moving && !airborne) {
+      dustTimer.current += dt
+      if (dustTimer.current > 0.11) {
+        dustTimer.current = 0
+        emitDust(remote.x, remote.z, 1)
+      }
+    }
+    if (wasAirborne.current && !airborne) emitDust(remote.x, remote.z, 4)
+    wasAirborne.current = airborne
 
     g.position.set(remote.x, remote.y, remote.z)
     g.rotation.y = remote.rot
@@ -52,12 +68,7 @@ function RemotePlayer({ player }: { player: PlayerRow }) {
 
   return (
     <group ref={group} visible={false}>
-      <Character
-        color={playerColor(player.color_index)}
-        status={player.status}
-        isSelf={false}
-        motion={motion}
-      />
+      <Character color={playerColor(player.color_index)} status={player.status} isSelf={false} motion={motion} />
     </group>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { Group } from 'three'
 import { Character, type MotionState } from './Character'
+import { emitDust } from './DustSystem'
 import { getMap } from '../map/generateMap'
 import { CATCH_RANGE, INTERACT_RANGE, PLAYER_RADIUS } from '../map/constants'
 import type { PropSpec } from '../map/types'
@@ -11,9 +12,11 @@ import { isGrounded, stepJump, type JumpState } from '../physics/jump'
 import { getRemote, isOnline, localPosition, setLocalPosition } from '../net/positionStore'
 import { sendPosition } from '../net/useGameChannel'
 import { findPlayer, useGameStore } from '../state/gameStore'
-import { hunterTargets } from '../state/rules'
+import { hunterTargets, isMovementFrozen } from '../state/rules'
 import { playerColor } from '../state/types'
 import { attemptCatch } from '../interaction'
+import { sfx, unlockAudio } from '../ui/sound'
+import { haptics } from '../ui/haptics'
 
 interface Props {
   userId: string
@@ -45,13 +48,16 @@ export function LocalPlayer({ userId, onInteract }: Props) {
   const map = useMemo(() => getMap(), [])
   const group = useRef<Group>(null)
   const keys = useRef<Keys>({ ...IDLE_KEYS })
-  const motion = useRef<MotionState>({ moving: false })
+  const motion = useRef<MotionState>({ moving: false, sprinting: false, airborne: false })
   const pose = useRef({ x: 0, z: 0, rot: 0 })
   const jump = useRef<JumpState>({ y: 0, vy: 0 })
   /** Direction held at take-off, carried through the air so a hop always travels somewhere. */
   const airForward = useRef<-1 | 0 | 1>(1)
   const lastRoundNumber = useRef<number | null>(null)
   const idleSendTimer = useRef(0)
+  const stepDistance = useRef(0)
+  const dustTimer = useRef(0)
+  const wasAirborne = useRef(false)
 
   const me = useGameStore((s) => findPlayer(s.players, userId))
   const session = useGameStore((s) => s.session)
@@ -68,13 +74,14 @@ export function LocalPlayer({ userId, onInteract }: Props) {
     const spawn = map.spawnPoints[colorIndex % map.spawnPoints.length]
     pose.current = { x: spawn.x, z: spawn.z, rot: spawn.rot }
     jump.current = { y: 0, vy: 0 }
-    setLocalPosition(spawn.x, spawn.z, 0, spawn.rot, false)
-    sendPosition(spawn.x, spawn.z, 0, spawn.rot, false, true)
+    setLocalPosition(spawn.x, spawn.z, 0, spawn.rot, false, false)
+    sendPosition(spawn.x, spawn.z, 0, spawn.rot, false, false, true)
   }, [map, colorIndex, roundNumber, sessionStatus])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent, pressed: boolean) => {
       if (isTypingTarget(event.target)) return
+      if (pressed) unlockAudio()
       const k = keys.current
       // Alt combined with arrows would otherwise trigger browser history navigation.
       k.alt = event.altKey
@@ -138,6 +145,7 @@ export function LocalPlayer({ userId, onInteract }: Props) {
         bestDistance = d
       }
       if (best === null) {
+        sfx.click()
         useGameStore.getState().showToast('Nothing to inspect here.', 'info')
         return
       }
@@ -151,7 +159,7 @@ export function LocalPlayer({ userId, onInteract }: Props) {
     // Clamp so a stalled tab cannot teleport, but allow low frame rates to keep full speed.
     const dt = Math.min(rawDt, 0.1)
     const state = useGameStore.getState()
-    const frozen = isFrozen(state.session?.status, state.session?.hunter_id, userId)
+    const frozen = isMovementFrozen(state.session, state.round, state.serverOffsetMs)
 
     const k = keys.current
     let forward: -1 | 0 | 1 = frozen ? 0 : k.up && !k.down ? 1 : k.down && !k.up ? -1 : 0
@@ -161,34 +169,65 @@ export function LocalPlayer({ userId, onInteract }: Props) {
     const ground = groundHeightAt(pose.current.x, pose.current.z, PLAYER_RADIUS, map.colliders)
     const wantJump = k.jumpQueued && !frozen
     k.jumpQueued = false
-    if (wantJump && isGrounded(jump.current, ground)) {
+    const grounded = isGrounded(jump.current, ground)
+    if (wantJump && grounded) {
       airForward.current = forward === 0 ? 1 : forward
+      sfx.jump()
+      emitDust(pose.current.x, pose.current.z, 3, 0.26)
     }
     jump.current = stepJump(jump.current, wantJump, dt, ground)
     const airborne = !isGrounded(jump.current, ground)
     if (airborne && forward === 0) {
       forward = airForward.current
     }
+    if (wasAirborne.current && !airborne) {
+      sfx.land()
+      haptics.land()
+      emitDust(pose.current.x, pose.current.z, 5)
+    }
+    wasAirborne.current = airborne
 
-    const input: TankInput = { forward, turn, sprint: k.alt, airborne }
+    const sprinting = k.alt && !frozen
+    const input: TankInput = { forward, turn, sprint: sprinting, airborne }
     const step = tankStep(pose.current, input, dt)
     const next = resolveMovement(pose.current, step.dx, step.dz, PLAYER_RADIUS, map.colliders, jump.current.y)
+    const travelled = Math.hypot(next.x - pose.current.x, next.z - pose.current.z)
     pose.current = { x: next.x, z: next.z, rot: step.rot }
-    motion.current.moving = step.moving && !airborne
+    const moving = step.moving && travelled > 0.0005
+    motion.current.moving = moving && !airborne
+    motion.current.sprinting = sprinting && moving
+    motion.current.airborne = airborne
+
+    // Footsteps and sprint dust.
+    if (moving && !airborne) {
+      stepDistance.current += travelled
+      const stride = sprinting ? 1.35 : 1.15
+      if (stepDistance.current >= stride) {
+        stepDistance.current = 0
+        sfx.footstep(sprinting)
+      }
+      if (sprinting) {
+        dustTimer.current += dt
+        if (dustTimer.current > 0.09) {
+          dustTimer.current = 0
+          emitDust(next.x, next.z, 1)
+        }
+      }
+    }
 
     const y = jump.current.y
     if (group.current) {
       group.current.position.set(next.x, y, next.z)
       group.current.rotation.y = step.rot
     }
-    setLocalPosition(next.x, next.z, y, step.rot, step.moving)
+    setLocalPosition(next.x, next.z, y, step.rot, moving, sprinting && moving)
 
     // Send while moving, turning or jumping, plus a slow keepalive while idle.
     idleSendTimer.current += dt
-    const active = step.moving || input.turn !== 0 || airborne
+    const active = moving || input.turn !== 0 || airborne
     if (active || idleSendTimer.current > 1) {
       idleSendTimer.current = 0
-      sendPosition(next.x, next.z, y, step.rot, step.moving)
+      sendPosition(next.x, next.z, y, step.rot, moving, sprinting && moving)
     }
 
     // Hunter: touching a searching player catches them.
@@ -212,12 +251,4 @@ export function LocalPlayer({ userId, onInteract }: Props) {
       <Character color={playerColor(colorIndex)} status={status} isSelf motion={motion} />
     </group>
   )
-}
-
-/** Movement is paused between rounds and while this player is picking the color. */
-function isFrozen(status: string | undefined, hunterId: string | null | undefined, userId: string): boolean {
-  if (status === 'round_over') return true
-  if (status === 'finished') return true
-  if (status === 'choosing_color' && hunterId === userId) return true
-  return false
 }
